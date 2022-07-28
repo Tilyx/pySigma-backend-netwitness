@@ -1,73 +1,46 @@
 from sigma.conversion.state import ConversionState
 from sigma.rule import SigmaRule
+from collections import defaultdict
+from sigma.processing.pipeline import ProcessingPipeline
 from sigma.conversion.base import TextQueryBackend
-from sigma.conditions import ConditionItem, ConditionAND, ConditionOR, ConditionNOT
 from sigma.types import SigmaCompareExpression
-from sigma.pipelines.netwitness import # TODO: add pipeline imports or delete this line
+from sigma.pipelines.netwitness import netwitness_windows
 import sigma
 from typing import ClassVar, Dict, List, Optional, Tuple
+# requirements
+
+# Netwitness Backend build base on Splunk Backend 
+# Author: Duc.Le - GTSC Team
+# Supporting: ...
+
 
 class NetwitnessBackend(TextQueryBackend):
     """RSA Netwitness backend."""
-    # TODO: change the token definitions according to the syntax. Delete these not supported by your backend.
-    # See the pySigma documentation for further infromation:
-    # https://sigmahq-pysigma.readthedocs.io/en/latest/Backends.html
+    group_expression : ClassVar[str] = "({expr})"
 
-    # Operator precedence: tuple of Condition{AND,OR,NOT} in order of precedence.
-    # The backend generates grouping if required
-    precedence : ClassVar[Tuple[ConditionItem, ConditionItem, ConditionItem]] = (ConditionNOT, ConditionAND, ConditionOR)
-    group_expression : ClassVar[str] = "({expr})"   # Expression for precedence override grouping as format string with {expr} placeholder
-
-    # Generated query tokens
-    token_separator : str = " "     # separator inserted between all boolean operators
-    or_token : ClassVar[str] = "OR"
-    and_token : ClassVar[str] = " "
+    or_token : ClassVar[str] = " || "
+    and_token : ClassVar[str] = " && "
     not_token : ClassVar[str] = "NOT"
-    eq_token : ClassVar[str] = "="  # Token inserted between field and value (without separator)
+    eq_token : ClassVar[str] = "="
+    field_quote: ClassVar[str] =""
+    str_quote : ClassVar[str] = "'"
+    escape_char : ClassVar[str] = ""
+    wildcard_multi : ClassVar[str] = "*"
+    wildcard_single : ClassVar[str] = "*"
+    add_escaped : ClassVar[str] = ""
 
-    # String output
-    ## Fields
-    ### Quoting
-    field_quote : ClassVar[str] = "'"                               # Character used to quote field characters if field_quote_pattern matches (or not, depending on field_quote_pattern_negation). No field name quoting is done if not set.
-    field_quote_pattern : ClassVar[Pattern] = re.compile("^\\w+$")   # Quote field names if this pattern (doesn't) matches, depending on field_quote_pattern_negation. Field name is always quoted if pattern is not set.
-    field_quote_pattern_negation : ClassVar[bool] = True            # Negate field_quote_pattern result. Field name is quoted if pattern doesn't matches if set to True (default).
+    re_expression : ClassVar[str] = "{field} regex '{regex}'"
+    re_escape_char : ClassVar[str] = ""
+    re_escape : ClassVar[Tuple[str]] = ('"',)
 
-    ### Escaping
-    field_escape : ClassVar[str] = "\\"               # Character to escape particular parts defined in field_escape_pattern.
-    field_escape_quote : ClassVar[bool] = True        # Escape quote string defined in field_quote
-    field_escape_pattern : ClassVar[Pattern] = re.compile("\\s")   # All matches of this pattern are prepended with the string contained in field_escape.
 
-    ## Values
-    str_quote       : ClassVar[str] = '"'     # string quoting character (added as escaping character)
-    escape_char     : ClassVar[str] = "\\"    # Escaping character for special characrers inside string
-    wildcard_multi  : ClassVar[str] = "*"     # Character used as multi-character wildcard
-    wildcard_single : ClassVar[str] = "*"     # Character used as single-character wildcard
-    add_escaped     : ClassVar[str] = "\\"    # Characters quoted in addition to wildcards and string quote
-    filter_chars    : ClassVar[str] = ""      # Characters filtered
-    bool_values     : ClassVar[Dict[bool, str]] = {   # Values to which boolean values are mapped.
-        True: "true",
-        False: "false",
-    }
+    cidr_expression : ClassVar[str] = "{field} = '{value}'" 
+    startswith_expression : ClassVar[str] = "{field} begins '{value}'"
+    endswith_expression   : ClassVar[str] = "{field} ends '{value}'"
+    contains_expression   : ClassVar[str] = "{field} contains '{value}'"
 
-    # String matching operators. if none is appropriate eq_token is used.
-    startswith_expression : ClassVar[str] = "startswith"
-    endswith_expression   : ClassVar[str] = "endswith"
-    contains_expression   : ClassVar[str] = "contains"
-    wildcard_match_expression : ClassVar[str] = "match"      # Special expression if wildcards can't be matched with the eq_token operator
+    compare_op_expression : ClassVar[str] = "{field} {operator} {value}"
 
-    # Regular expressions
-    re_expression : ClassVar[str] = "{field}=~{value}"  # Regular expression query as format string with placeholders {field} and {regex}
-    re_escape_char : ClassVar[str] = "\\"               # Character used for escaping in regular expressions
-    re_escape : ClassVar[Tuple[str]] = ()               # List of strings that are escaped
-
-    # cidr expressions
-    cidr_wildcard : ClassVar[str] = "*"    # Character used as single wildcard
-    cidr_expression : ClassVar[Optional[str]] = "cidrmatch({field}, {value})"    # CIDR expression query as format string with placeholders {field} = {value}
-    cidr_in_list_expression : ClassVar[Optional[str]] = "{field} in ({value})"    # CIDR expression query as format string with placeholders {field} = in({list})
-
-    # Numeric comparison operators
-    compare_op_expression : ClassVar[str] = "{field}{operator}{value}"  # Compare operation query as format string with placeholders {field}, {operator} and {value}
-    # Mapping between CompareOperators elements and strings used as replacement for {operator} in compare_op_expression
     compare_operators : ClassVar[Dict[SigmaCompareExpression.CompareOperators, str]] = {
         SigmaCompareExpression.CompareOperators.LT  : "<",
         SigmaCompareExpression.CompareOperators.LTE : "<=",
@@ -75,53 +48,114 @@ class NetwitnessBackend(TextQueryBackend):
         SigmaCompareExpression.CompareOperators.GTE : ">=",
     }
 
-    # Null/None expressions
-    field_null_expression : ClassVar[str] = "{field} is null"          # Expression for field has null value as format string with {field} placeholder for field name
+    field_null_expression : ClassVar[str] = "{field} !exists"
+    # Need testing
+    convert_or_as_in : ClassVar[bool] = False
+    convert_and_as_in : ClassVar[bool] = False
+    in_expressions_allow_wildcards : ClassVar[bool] = True
+    field_in_list_expression : ClassVar[str] = "{field} {op} {list}" # Need tune performance
+    or_in_operator : ClassVar[Optional[str]] = "regex"
+    list_separator : ClassVar[str] = ","
 
-    # Field value in list, e.g. "field in (value list)" or "field containsall (value list)"
-    convert_or_as_in : ClassVar[bool] = True                     # Convert OR as in-expression
-    convert_and_as_in : ClassVar[bool] = True                    # Convert AND as in-expression
-    in_expressions_allow_wildcards : ClassVar[bool] = True       # Values in list can contain wildcards. If set to False (default) only plain values are converted into in-expressions.
-    field_in_list_expression : ClassVar[str] = "{field} {op} ({list})"  # Expression for field in list of values as format string with placeholders {field}, {op} and {list}
-    or_in_operator : ClassVar[str] = "in"               # Operator used to convert OR into in-expressions. Must be set if convert_or_as_in is set
-    and_in_operator : ClassVar[str] = "contains-all"    # Operator used to convert AND into in-expressions. Must be set if convert_and_as_in is set
-    list_separator : ClassVar[str] = ", "               # List element separator
+    unbound_value_str_expression : ClassVar[str] = "'{value}'"
+    unbound_value_num_expression : ClassVar[str] = '{value}'
+    unbound_value_re_expression : ClassVar[str] = '{value}'
+    deferred_start : ClassVar[str] = ""
+    deferred_separator : ClassVar[str] = ""
+    deferred_only_query : ClassVar[str] = ""
 
-    # Value not bound to a field
-    unbound_value_str_expression : ClassVar[str] = '"{value}"'   # Expression for string value not bound to a field as format string with placeholder {value}
-    unbound_value_num_expression : ClassVar[str] = '{value}'   # Expression for number value not bound to a field as format string with placeholder {value}
-    unbound_value_re_expression : ClassVar[str] = '_=~{value}'    # Expression for regular expression not bound to a field as format string with placeholder {value}
+    output_format_processing_pipeline = defaultdict(ProcessingPipeline,
+    # Mapping rules
+        default = netwitness_windows()
+    )
 
-    # Query finalization: appending and concatenating deferred query part
-    deferred_start : ClassVar[str] = "\n| "               # String used as separator between main query and deferred parts
-    deferred_separator : ClassVar[str] = "\n| "           # String used to join multiple deferred query parts
-    deferred_only_query : ClassVar[str] = "*"            # String used as query if final query only contains deferred expression
+    def __init__(self, processing_pipeline: Optional["sigma.processing.pipeline.ProcessingPipeline"] = None, collect_errors: bool = False, **kwargs):
+        super().__init__(processing_pipeline, collect_errors, **kwargs)
 
-    # TODO: implement custom classes for query elements not covered by the default backend base.
-    # Documentation: https://sigmahq-pysigma.readthedocs.io/en/latest/Backends.html
 
-    
-    
-    def finalize_query_format1(self, rule: SigmaRule, query: str, index: int, state: ConversionState) -> str:
-        # TODO: implement the per-query output for the output format format1 here. Usually, the generated query is
-        # embedded into a template, e.g. a JSON format with additional information from the Sigma rule.
-        return query
+    def finalize_query_default(self, rule: SigmaRule, query: str, index: int, state: ConversionState) -> str:
+        netwitness_prefix = ""
+        escaped_query = " \\\n".join(query.split("\n"))      # escape line ends for multiline queries
+        netwitness_prefix += escaped_query
+        # print(netwitness_prefix)
+        return netwitness_prefix
 
-    def finalize_output_format1(self, queries: List[str]) -> str:
-        # TODO: implement the output finalization for all generated queries for the format format1 here. Usually,
-        # the single generated queries are embedded into a structure, e.g. some JSON or XML that can be imported into
-        # the SIEM.
-        return "\n".join(queries)
-    
-    def finalize_query_format2(self, rule: SigmaRule, query: str, index: int, state: ConversionState) -> str:
-        # TODO: implement the per-query output for the output format format2 here. Usually, the generated query is
-        # embedded into a template, e.g. a JSON format with additional information from the Sigma rule.
-        return query
 
-    def finalize_output_format2(self, queries: List[str]) -> str:
-        # TODO: implement the output finalization for all generated queries for the format format2 here. Usually,
-        # the single generated queries are embedded into a structure, e.g. some JSON or XML that can be imported into
-        # the SIEM.
-        return "\n".join(queries)
-    
-    
+
+class NetwitnessEPLBackend(TextQueryBackend):
+    """RSA Netwitness EPL Rules backend."""
+
+    group_expression : ClassVar[str] = "({expr})"
+
+    or_token : ClassVar[str] = " OR "
+    and_token : ClassVar[str] = " AND "
+    not_token : ClassVar[str] = "NOT"
+    eq_token : ClassVar[str] = " = "
+    field_quote: ClassVar[str] =""
+    str_quote : ClassVar[str] = "'"
+    escape_char : ClassVar[str] = ""
+    wildcard_multi : ClassVar[str] = "%"
+    wildcard_single : ClassVar[str] = "%"
+    add_escaped : ClassVar[str] = ""
+
+    re_expression : ClassVar[str] = "{field} REGEXP '{regex}'"
+    re_escape_char : ClassVar[str] = ""
+    re_escape : ClassVar[Tuple[str]] = ('"',)
+
+
+    cidr_expression : ClassVar[str] = "{field} = '{value}'" 
+    startswith_expression : ClassVar[str] = "{field} like '{value}%'"
+    endswith_expression   : ClassVar[str] = "{field} like '%{value}'"
+    contains_expression   : ClassVar[str] = "{field} like '%{value}%'"
+
+    compare_op_expression : ClassVar[str] = "{field} {operator} {value}"
+
+    compare_operators : ClassVar[Dict[SigmaCompareExpression.CompareOperators, str]] = {
+        SigmaCompareExpression.CompareOperators.LT  : "<",
+        SigmaCompareExpression.CompareOperators.LTE : "<=",
+        SigmaCompareExpression.CompareOperators.GT  : ">",
+        SigmaCompareExpression.CompareOperators.GTE : ">=",
+    }
+
+    field_null_expression : ClassVar[str] = "{field} is null"
+    # Need testing
+    convert_or_as_in : ClassVar[bool] = False
+    convert_and_as_in : ClassVar[bool] = False
+    in_expressions_allow_wildcards : ClassVar[bool] = True
+    # field_in_list_expression : ClassVar[str] = "{field} {op} {list}" # Need tune performance
+    # or_in_operator : ClassVar[Optional[str]] = "regex"
+    # list_separator : ClassVar[str] = ","
+
+    unbound_value_str_expression : ClassVar[str] = "'{value}'"
+    unbound_value_num_expression : ClassVar[str] = '{value}'
+    unbound_value_re_expression : ClassVar[str] = '{value}'
+    deferred_start : ClassVar[str] = ""
+    deferred_separator : ClassVar[str] = ""
+    deferred_only_query : ClassVar[str] = ""
+
+    output_format_processing_pipeline = defaultdict(ProcessingPipeline,
+    # Mapping rules
+        default = netwitness_windows()
+    )
+
+    def __init__(self, processing_pipeline: Optional["sigma.processing.pipeline.ProcessingPipeline"] = None, collect_errors: bool = False, **kwargs):
+        super().__init__(processing_pipeline, collect_errors, **kwargs)
+
+
+    def finalize_query_default(self, rule: SigmaRule, query: str, index: int, state: ConversionState) -> str:
+        if rule.description == None:
+            rule.description = rule.title
+        self.description =  rule.description + "\nReferences:\n- "+"\n- ".join(rule.references)
+        self.title = rule.title.replace(" ","_")      
+        netwitness_prefix = ""
+        escaped_query = " \\\n".join(query.split("\n"))      # escape line ends for multiline queries
+        netwitness_prefix += escaped_query
+        return         f"""module {self.title};
+@Name('{self.title}')
+@Description('{self.description}')
+@RSAAlert(oneInSeconds=0) 
+SELECT * FROM Event(
+{netwitness_prefix}
+);"""
+    def finalize_output_default(self, queries: List[str]) -> str:
+        return queries
