@@ -10,7 +10,7 @@ from typing import ClassVar, Dict, List, Optional, Tuple
 # requirements
 
 # Netwitness Backend build base on Splunk Backend 
-# Author: Duc.Le - GTSC Team
+# Author: Duc.Le - Tilyx Team
 # Supporting: ...
 
 
