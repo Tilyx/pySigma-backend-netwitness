@@ -106,11 +106,11 @@ pyyaml = ">=6.0,<7.0"
 
 [[package]]
 name = "pytest"
-version = "7.1.2"
+version = "6.2.2"
 description = "pytest: simple powerful testing with Python"
 category = "dev"
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.6"
 
 [package.dependencies]
 atomicwrites = {version = ">=1.0", markers = "sys_platform == \"win32\""}
