@@ -1,5 +1,3 @@
-from io import BytesIO
-from zipfile import ZipFile
 import pytest
 from sigma.backends.netwitness import NetwitnessBackend, NetwitnessEPLBackend
 from sigma.collection import SigmaCollection
