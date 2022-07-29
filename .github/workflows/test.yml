@@ -32,12 +32,12 @@ jobs:
         if: ${{ runner.os == 'Linux' }}
         run: poetry run python print-coverage.py >> $GITHUB_ENV
       - name: Create coverage badge
-        if: ${{ github.repository == 'SigmaHQ/pySigma-backend-splunk' && github.event_name == 'push' && runner.os == 'Linux' }}
+        if: ${{ github.repository == 'Tilyx/pySigma-backend-netwitness' && github.event_name == 'push' && runner.os == 'Linux' }}
         uses: schneegans/dynamic-badges-action@v1.1.0
         with:
           auth: ${{ secrets.GIST_SECRET }}
-          gistID: 47c292239759399a6e3c73b0e9656b33
-          filename: SigmaHQ-pySigma-backend-splunk.json
+          gistID: 17f796b05463b26be5757fbec657905f
+          filename: Tilyx-pySigma-backend-netwitness.json
           label: Coverage
           message: ${{ env.COVERAGE }}
           color: ${{ env.COVERAGE_COLOR }}
