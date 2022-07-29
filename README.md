@@ -1,6 +1,7 @@
 ![Tests](https://github.com/Tilyx/pySigma-backend-netwitness/actions/workflows/test.yml/badge.svg)
 ![Coverage Badge](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/nNipsx-Sec/17f796b05463b26be5757fbec657905f/raw/1e7cbf7e8d046fbe45e5c392ddf7372f1080c0bf/Tilyx-pySigma-backend-netwitness.json)
 ![Status](https://img.shields.io/badge/Status-pre--release-orange)
+
 Inspired from John Tuckner (@tuckner) and @snake-jump NetWitnes/Netwitness EPL output backend for sigmac
 
 # pySigma RSA Netwitness Backend
