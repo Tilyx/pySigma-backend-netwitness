@@ -7,16 +7,15 @@
 This is the RSA Netwitness backend for pySigma. It provides the package `sigma.backends.netwitness` with the `NetwitnessBackend` class.
 Further, it contains the following processing pipelines in `sigma.pipelines.netwitness`:
 
-* pipeline1: purpose
-* pipeline2: purpose
+* Netwitness & Netwitness EPL pipeline for windows
+
 
 
 It supports the following output formats:
 
-* default: plain RSA Netwitness queries
-* format_1: purpose
-* format_2: purpose
+* RSA Netwitness queries
+* RSA Netwitness EPL Rules
 
 This backend is currently maintained by:
 
-* [nNipsx](https://github.com/nNipsx-Sec/)
+* [nNipsx-Sec](https://github.com/nNipsx-Sec/)
