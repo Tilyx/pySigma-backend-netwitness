@@ -25,7 +25,7 @@ class NetwitnessBackend(TextQueryBackend):
     field_quote: ClassVar[str] =""
     str_quote : ClassVar[str] = "'"
     escape_char : ClassVar[str] = ""
-    wildcard_multi : ClassVar[str] = "*"
+    wildcard_multi : ClassVar[str]= "*"
     wildcard_single : ClassVar[str] = "*"
     add_escaped : ClassVar[str] = ""
 
